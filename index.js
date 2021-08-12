@@ -2,7 +2,8 @@ const AWS = require('aws-sdk');
 const https = require('https');
 const fs = require('fs');
 var async = require('async');
-
+var textract = require('textract');
+let filePath = "./doc/rei.pdf";
 
 
 AWS.config.update({
@@ -21,7 +22,6 @@ var comprehend = new AWS.Comprehend({
     region: 'us-east-1',
 });
 
-// console.log(quicksight.config.apiConfig.operations);
 
 // quicksight.listUsers({
 //     // Enter your actual AWS account ID
@@ -46,13 +46,12 @@ var comprehend = new AWS.Comprehend({
 //     console.log(data);
 // });
 
-
 var express = require('express');
 var cors = require('cors')
 
 var options = {
-    key: fs.readFileSync('/etc/letsencrypt/live/qa1.reisystems.in/privkey.pem'),
-    cert: fs.readFileSync('/etc/letsencrypt/live/qa1.reisystems.in/fullchain.pem'),
+    // key: fs.readFileSync('/etc/letsencrypt/live/qa1.reisystems.in/privkey.pem'),
+    // cert: fs.readFileSync('/etc/letsencrypt/live/qa1.reisystems.in/fullchain.pem'),
 };
 var app = express();
 app.use(cors());
@@ -108,7 +107,7 @@ app.get('/url/:id', function(req, res){
     });
 });
 
-app.post('/sentiment', function(req, res){
+app.post('/sentiment1', function(req, res){
     console.log('sentiment');
 
     async.waterfall([
@@ -145,9 +144,65 @@ app.post('/sentiment', function(req, res){
 
 });
 
-// app.listen(9001, function(){
-// console.log('listening');
-// });
-https.createServer(options, app).listen(9001, () => console.log(`Server started at port : 9001`));
+app.get('/sentiment/:id', function(req, res){
+    console.log('sentiment:id');
+
+    async.waterfall([
+        function (done) {
+            let params = {
+                "LanguageCode": "en",
+                "TextList": []   
+            }
+            textract.fromFileWithPath(filePath, function( error, text ) {
+                // console.log(error);
+                // console.log(text);
+                let PASTPERFORMANCE = text.substring(text.indexOf('Assessing Official Comments:'),text.indexOf('RECOMMENDATION:')).replace('FOR OFFICIAL USE ONLY / SOURCE SELECTION INFORMATION - SEE FAR 2.101, 3.104, AND 42.1503','');
+                let RECOMMENDATION = text.substring(text.indexOf('RECOMMENDATION:'),text.indexOf('Name and Title of Assessing Official:')).replace('FOR OFFICIAL USE ONLY / SOURCE SELECTION INFORMATION - SEE FAR 2.101, 3.104, AND 42.1503','');
+                // params.TextList.push(PASTPERFORMANCE.substring(0,5000));
+                params.TextList.push(RECOMMENDATION);
+                // params.TextList.push(text);
+                // console.log(" ============== ",params);
+                done(null, params);
+            })
+        },
+        function (params,done) {
+            comprehend.batchDetectKeyPhrases(params,function(err,data) {
+                if(err) {
+                    done(null, {err: err, params: params});
+                } else {
+                    done(null, {keys: data.ResultList, params: params});
+                }
+            });
+        },
+        function (params, done) {
+            console.log(params);
+            comprehend.batchDetectSentiment(params.params,function(err,data) {
+                if(err) {
+                    done(null, err);
+                } else {
+                    let obj = {
+                        keys: params.keys,
+                        analysis: data.ResultList
+                    }
+                    console.log(" ========== obj: ", obj)
+                    done(null, obj);
+                }
+            });
+    }], function (err,data) {
+        if (err) {
+            res.statusCode = 401;
+            res.send(err);
+        } else {
+            res.statusCode = 200;
+            res.send(data);
+        }
+    });
+
+});
+
+app.listen(9001, function(){
+    console.log('listening');
+});
+// https.createServer(options, app).listen(9001, () => console.log(`Server started at port : 9001`));
 
 
