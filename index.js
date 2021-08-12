@@ -1,6 +1,8 @@
 const AWS = require('aws-sdk');
 const https = require('https');
 const fs = require('fs');
+var async = require('async');
+
 
 
 AWS.config.update({
@@ -11,6 +13,11 @@ AWS.config.update({
 
 var quicksight = new AWS.Service({
     apiConfig: require('./quicksight-2018-04-01.min.json'),
+    region: 'us-east-1',
+});
+
+var comprehend = new AWS.Comprehend({
+    apiVersion: '2017-11-27',
     region: 'us-east-1',
 });
 
@@ -42,12 +49,18 @@ var quicksight = new AWS.Service({
 
 var express = require('express');
 var cors = require('cors')
+
 var options = {
     key: fs.readFileSync('/etc/letsencrypt/live/qa1.reisystems.in/privkey.pem'),
     cert: fs.readFileSync('/etc/letsencrypt/live/qa1.reisystems.in/fullchain.pem'),
 };
 var app = express();
 app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({
+  extended: true
+}));
+
 app.get('/url/:id', function(req, res){
     console.log(req.params.id)
     var dashboardId = '';
@@ -94,9 +107,47 @@ app.get('/url/:id', function(req, res){
         res.send({url: data.EmbedUrl});
     });
 });
-//app.listen(9001, function(){
-//console.log('listening');
-//});
+
+app.post('/sentiment', function(req, res){
+    console.log('sentiment');
+
+    async.waterfall([
+        function (done) {
+            comprehend.batchDetectKeyPhrases(req.body,function(err,data) {
+                if(err) {
+                    done(null, err);
+                } else {
+                    done(null, data.ResultList[0]);
+                }
+            });
+        },
+        function (keys, done) {
+            comprehend.batchDetectSentiment(req.body,function(err,data) {
+                if(err) {
+                    done(null, err);
+                } else {
+                    let obj = {
+                        keys: keys,
+                        analysis: data.ResultList[0]
+                    }
+                    done(null, obj);
+                }
+            });
+    }], function (err,data) {
+        if (err) {
+            res.statusCode = 401;
+            res.send(err);
+        } else {
+            res.statusCode = 200;
+            res.send(data);
+        }
+    });
+
+});
+
+// app.listen(9001, function(){
+// console.log('listening');
+// });
 https.createServer(options, app).listen(9001, () => console.log(`Server started at port : 9001`));
 
 
