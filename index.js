@@ -2,6 +2,7 @@ const AWS = require('aws-sdk');
 const https = require('https');
 const fs = require('fs');
 var async = require('async');
+var request = require('request');
 var textract = require('textract');
 let filePath = "./doc/rei.pdf";
 
@@ -196,6 +197,24 @@ app.get('/sentiment/:id', function(req, res){
             res.statusCode = 200;
             res.send(data);
         }
+    });
+
+});
+
+app.get('/search', function(req, res){
+    console.log(req.query);
+    console.log(typeof req.query);
+
+    request({
+        method: 'GET',
+        uri: 'https://search-sam-yxvphgkmpxmd7aizuihmx4pmgi.us-east-2.es.amazonaws.com/_search?q=' + req.query.q,
+        headers: {
+            'Authorization': 'Basic ' + new Buffer('admin' + ':' + 'Admin@123').toString('base64')
+        }
+    },function(error, response, body){
+        body = JSON.parse(body);
+        res.statusCode = 200;
+        res.send(body);
     });
 
 });
