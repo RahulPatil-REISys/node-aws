@@ -1,3 +1,4 @@
+require('dotenv').config()
 const AWS = require('aws-sdk');
 const https = require('https');
 const fs = require('fs');
@@ -6,21 +7,21 @@ var request = require('request');
 var textract = require('textract');
 let filePath = "./doc/rei.pdf";
 
-
+console.log(process.env);
 AWS.config.update({
-    accessKeyId: 'AKIA6RC55GFFRMETMH7G',
-    secretAccessKey: '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',
-    region: 'us-east-1',
+    accessKeyId: process.env.accessKeyId,
+    secretAccessKey: process.env.secretAccessKey,
+    region: process.env.region,
   });
 
 var quicksight = new AWS.Service({
     apiConfig: require('./quicksight-2018-04-01.min.json'),
-    region: 'us-east-1',
+    region: process.env.region,
 });
 
 var comprehend = new AWS.Comprehend({
     apiVersion: '2017-11-27',
-    region: 'us-east-1',
+    region: process.env.region,
 });
 
 
