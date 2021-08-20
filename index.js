@@ -210,7 +210,7 @@ app.get('/search', function(req, res){
         method: 'GET',
         uri: 'https://search-sam-yxvphgkmpxmd7aizuihmx4pmgi.us-east-2.es.amazonaws.com/_search?q=' + req.query.q,
         headers: {
-            'Authorization': 'Basic ' + new Buffer('admin' + ':' + 'Admin@123').toString('base64')
+            'Authorization': 'Basic ' + new Buffer(process.env.username + ':' + process.env.password).toString('base64')
         }
     },function(error, response, body){
         body = JSON.parse(body);
