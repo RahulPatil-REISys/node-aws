@@ -94,7 +94,7 @@ app.get('/url/:id', function(req, res){
  
    quicksight.getDashboardEmbedUrl({
         // Enter your actual AWS account ID
-        'AwsAccountId': '998776844619', 
+        'AwsAccountId': process.env.AwsAccountId,
         'DashboardId': dashboardId, 
         'IdentityType': 'ANONYMOUS',
         'Namespace': 'default'
