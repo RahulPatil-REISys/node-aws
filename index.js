@@ -7,7 +7,6 @@ var request = require('request');
 var textract = require('textract');
 let filePath = "./doc/rei.pdf";
 
-console.log(process.env);
 AWS.config.update({
     accessKeyId: process.env.accessKeyId,
     secretAccessKey: process.env.secretAccessKey,
@@ -52,8 +51,8 @@ var express = require('express');
 var cors = require('cors')
 
 var options = {
-    // key: fs.readFileSync('/etc/letsencrypt/live/qa1.reisystems.in/privkey.pem'),
-    // cert: fs.readFileSync('/etc/letsencrypt/live/qa1.reisystems.in/fullchain.pem'),
+    key: fs.readFileSync('/etc/letsencrypt/live/qa1.reisystems.in/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/qa1.reisystems.in/fullchain.pem'),
 };
 var app = express();
 app.use(cors());
@@ -210,9 +209,10 @@ app.get('/search', function(req, res){
         method: 'GET',
         uri: 'https://search-sam-yxvphgkmpxmd7aizuihmx4pmgi.us-east-2.es.amazonaws.com/_search?q=' + req.query.q,
         headers: {
-            'Authorization': 'Basic ' + new Buffer(process.env.username + ':' + process.env.password).toString('base64')
+            'Authorization': 'Basic ' + new Buffer(process.env.elasticUsername + ':' + process.env.elasticPassword).toString('base64')
         }
     },function(error, response, body){
+        // console.log(typeof body)
         body = JSON.parse(body);
         res.statusCode = 200;
         res.send(body);
@@ -220,9 +220,9 @@ app.get('/search', function(req, res){
 
 });
 
-app.listen(9001, function(){
-    console.log('listening');
-});
-// https.createServer(options, app).listen(9001, () => console.log(`Server started at port : 9001`));
+// app.listen(9001, function(){
+//     console.log('listening');
+// });
+https.createServer(options, app).listen(9001, () => console.log(`Server started at port : 9001`));
 
 
